@@ -39,6 +39,14 @@ type ShowManyOrganizationsOptions struct {
 	IDs         string `json:"ids,omitempty" url:"ids,omitempty"`
 }
 
+// OrganizationRelated contains organization related data
+//
+// ref:https://developer.zendesk.com/api-reference/ticketing/organizations/organizations/#show-organizations-related-information
+type OrganizationRelated struct {
+	UsersCount   int64 `json:"users_count"`
+	TicketsCount int64 `json:"tickets_count"`
+}
+
 // OrganizationAPI an interface containing all methods associated with zendesk organizations
 type OrganizationAPI interface {
 	GetOrganizations(ctx context.Context, opts *OrganizationListOptions) ([]Organization, Page, error)
@@ -51,6 +59,7 @@ type OrganizationAPI interface {
 	DeleteOrganization(ctx context.Context, orgID int64) error
 	GetOrganizationSubscriptions(
 		ctx context.Context, orgID int64, opts *OrganizationListOptions) ([]OrganizationSubscription, Page, error)
+	GetOrganizationRelated(ctx context.Context, organizationID int64) (OrganizationRelated, error)
 }
 
 // GetOrganizations fetch organization list
@@ -263,4 +272,23 @@ func (z *Client) GetOrganizationSubscriptions(
 	}
 
 	return data.OrganizationSubscription, data.Page, nil
+}
+
+// GetOrganizationRelated retrieves organization related organization information
+// ref: https://developer.zendesk.com/api-reference/ticketing/organizations/organizations/#show-organizations-related-information
+func (z *Client) GetOrganizationRelated(ctx context.Context, organizationID int64) (OrganizationRelated, error) {
+	var data struct {
+		OrganizationRelated OrganizationRelated `json:"organization_related"`
+	}
+
+	body, err := z.get(ctx, fmt.Sprintf("/organizations/%d/related.json", organizationID))
+	if err != nil {
+		return OrganizationRelated{}, err
+	}
+
+	if err := json.Unmarshal(body, &data); err != nil {
+		return OrganizationRelated{}, err
+	}
+
+	return data.OrganizationRelated, nil
 }
